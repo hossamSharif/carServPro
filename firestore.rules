@@ -1,0 +1,130 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isTenantMember(tenantId) {
+      return isAuthenticated() && request.auth.token.tenantId == tenantId;
+    }
+
+    function isAdmin(tenantId) {
+      return isTenantMember(tenantId) && request.auth.token.role == 'admin';
+    }
+
+    function isCustomer(tenantId) {
+      return isTenantMember(tenantId) && request.auth.token.role == 'customer';
+    }
+
+    // Pending registrations (written before auth user exists)
+    match /pendingRegistrations/{docId} {
+      allow read, write: if true;
+    }
+
+    // Tenant-scoped collections
+    match /tenants/{tenantId} {
+      allow read: if isTenantMember(tenantId);
+
+      // Settings
+      match /settings/{settingId} {
+        allow read: if isTenantMember(tenantId);
+        allow write: if isAdmin(tenantId);
+      }
+
+      // Services (public read for storefront catalog)
+      match /services/{serviceId} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin(tenantId);
+      }
+
+      // Categories (public read for storefront catalog)
+      match /categories/{categoryId} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin(tenantId);
+      }
+
+      // Reservations
+      match /reservations/{reservationId} {
+        allow read: if isAdmin(tenantId) ||
+          (isCustomer(tenantId) && resource.data.customerId == request.auth.uid);
+        allow create: if isCustomer(tenantId) &&
+          request.resource.data.customerId == request.auth.uid;
+        allow update, delete: if isAdmin(tenantId);
+      }
+
+      // Invoices
+      match /invoices/{invoiceId} {
+        allow read: if isAdmin(tenantId) ||
+          (isCustomer(tenantId) && resource.data.buyerEmail == request.auth.token.email);
+        allow create: if isAdmin(tenantId);
+        allow update: if isAdmin(tenantId) && (
+          resource.data.status != 'issued' ||
+          (resource.data.status == 'issued' && request.resource.data.status == 'cancelled')
+        );
+        allow delete: if isAdmin(tenantId) && resource.data.status == 'draft';
+      }
+
+      // Counters
+      match /counters/{counterId} {
+        allow read, write: if isAdmin(tenantId);
+      }
+
+      // Users
+      match /users/{userId} {
+        allow read: if isAdmin(tenantId) || request.auth.uid == userId;
+        allow create: if isTenantMember(tenantId) && request.auth.uid == userId;
+        allow update: if isAdmin(tenantId) || (
+          request.auth.uid == userId &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'tenantId', 'active'])
+        );
+        allow delete: if isAdmin(tenantId);
+      }
+
+      // Journal Entries (immutable after creation)
+      match /journalEntries/{entryId} {
+        allow read: if isAdmin(tenantId);
+        allow create: if isAdmin(tenantId);
+      }
+
+      // Expenses
+      match /expenses/{expenseId} {
+        allow read, write: if isAdmin(tenantId);
+      }
+
+      // Accounts
+      match /accounts/{accountId} {
+        allow read: if isAdmin(tenantId);
+        allow create, update: if isAdmin(tenantId);
+        allow delete: if isAdmin(tenantId) && resource.data.isSystem != true;
+      }
+
+      // Payments
+      match /payments/{paymentId} {
+        allow read: if isAdmin(tenantId) ||
+          (isCustomer(tenantId) && resource.data.customerId == request.auth.uid);
+        allow create, update: if isAdmin(tenantId);
+      }
+
+      // Assets
+      match /assets/{assetId} {
+        allow read, write: if isAdmin(tenantId);
+      }
+
+      // Slot Bookings
+      match /slotBookings/{slotId} {
+        allow read: if isTenantMember(tenantId);
+        allow create: if isTenantMember(tenantId);
+        allow update: if isTenantMember(tenantId) &&
+          request.resource.data.currentBookings <= resource.data.maxCapacity;
+      }
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
