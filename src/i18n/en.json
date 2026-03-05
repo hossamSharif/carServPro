@@ -69,6 +69,69 @@
     "registerSuccess": "Account created successfully",
     "logoutSuccess": "Logged out"
   },
+  "hero": {
+    "eyebrow": "Professional Protection for Your Car",
+    "title1": "Make Your Car Shine",
+    "title2": "With Exceptional Protection",
+    "subtitle": "PPF Wrapping • Ceramic Coating • Window Tinting",
+    "discoverServices": "Discover Our Services",
+    "trustClients": "500+ Clients",
+    "trustWarranty": "2-Year Warranty",
+    "trustTeam": "Certified Team"
+  },
+  "stats": {
+    "happyClients": "Happy Clients",
+    "satisfactionRate": "Satisfaction Rate",
+    "experience": "Experience",
+    "clientRating": "Client Rating",
+    "years": "Years"
+  },
+  "process": {
+    "title": "Our Process",
+    "subtitle": "We follow a precise methodology for the highest quality",
+    "step1Title": "Reception",
+    "step1Desc": "Receive your car and record details",
+    "step2Title": "Inspection",
+    "step2Desc": "Comprehensive inspection of car condition",
+    "step3Title": "Preparation",
+    "step3Desc": "Surface preparation and deep cleaning",
+    "step4Title": "Application",
+    "step4Desc": "Apply protection with highest precision",
+    "step5Title": "Delivery",
+    "step5Desc": "Final review and car delivery",
+    "bookService": "Book Service"
+  },
+  "testimonials": {
+    "title": "What Our Clients Say",
+    "t1Name": "Mohammed Al-Otaibi",
+    "t1Text": "Best PPF wrapping center in Riyadh. Amazing results and very professional team.",
+    "t2Name": "Abdullah Al-Shammari",
+    "t2Text": "Excellent ceramic coating, my car shines like new. I recommend everyone to try it.",
+    "t3Name": "Fahad Al-Dosari",
+    "t3Text": "Professional and fast tinting service. Competitive prices and very high quality.",
+    "t4Name": "Sultan Al-Qahtani",
+    "t4Text": "Great experience from reception to delivery. I will definitely come back.",
+    "t5Name": "Khalid Al-Mutairi",
+    "t5Text": "Two-year warranty on wrapping gave me full confidence. Clean and precise work.",
+    "t6Name": "Nasser Al-Harbi",
+    "t6Text": "Booked online and the process was very smooth. Results exceeded expectations."
+  },
+  "cta": {
+    "title": "Ready to Protect Your Car?",
+    "subtitle": "Book your appointment now and get a free consultation from our specialized team",
+    "button": "Book Your Appointment"
+  },
+  "footer": {
+    "tagline": "Professional protection for your car",
+    "quickLinks": "Quick Links",
+    "workingHoursTitle": "Working Hours",
+    "workingHoursValue": "Sun - Thu: 9 AM - 6 PM",
+    "fridayClosed": "Friday: Closed",
+    "saturdayHours": "Saturday: 10 AM - 4 PM",
+    "contactUs": "Contact Us",
+    "location": "Riyadh, Saudi Arabia",
+    "rights": "All rights reserved"
+  },
   "customer": {
     "browseServices": "Browse Services",
     "allCategories": "All Categories",
@@ -144,7 +207,14 @@
     "workingHours": "Working Hours",
     "slotDuration": "Slot Duration (minutes)",
     "maxBookings": "Max Bookings per Slot",
-    "blockedDates": "Blocked Dates"
+    "blockedDates": "Blocked Dates",
+    "nameAr": "Name (Arabic)",
+    "nameEn": "Name (English)",
+    "sortOrder": "Sort Order",
+    "descriptionAr": "Description (Arabic)",
+    "descriptionEn": "Description (English)",
+    "deleteCategoryConfirm": "Are you sure you want to delete this category?",
+    "deleteServiceConfirm": "Are you sure you want to delete this service?"
   },
   "invoice": {
     "invoice": "Invoice",

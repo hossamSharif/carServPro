@@ -31,7 +31,7 @@ export default function CategoryForm({ category, onSubmit, onCancel }: CategoryF
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">
-              {t('accounting.accountName')} (عربي)
+              {t('admin.nameAr')}
             </label>
             <input
               {...register('nameAr')}
@@ -42,7 +42,7 @@ export default function CategoryForm({ category, onSubmit, onCancel }: CategoryF
 
           <div>
             <label className="block text-sm font-medium mb-1">
-              {t('accounting.accountName')} (English)
+              {t('admin.nameEn')}
             </label>
             <input
               {...register('nameEn')}
@@ -54,7 +54,7 @@ export default function CategoryForm({ category, onSubmit, onCancel }: CategoryF
 
           <div>
             <label className="block text-sm font-medium mb-1">
-              {t('common.status')}
+              {t('admin.sortOrder')}
             </label>
             <input
               type="number"

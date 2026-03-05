@@ -59,24 +59,24 @@ export default function ServiceForm({ service, categories, onSubmit, onCancel }:
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">الاسم (عربي)</label>
+              <label className="block text-sm font-medium mb-1">{t('admin.nameAr')}</label>
               <input {...register('nameAr')} className="w-full px-3 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary" />
               {errors.nameAr && <p className="mt-1 text-sm text-destructive">{t(errors.nameAr.message!)}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Name (English)</label>
+              <label className="block text-sm font-medium mb-1">{t('admin.nameEn')}</label>
               <input {...register('nameEn')} dir="ltr" className="w-full px-3 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary" />
               {errors.nameEn && <p className="mt-1 text-sm text-destructive">{t(errors.nameEn.message!)}</p>}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">الوصف (عربي)</label>
+            <label className="block text-sm font-medium mb-1">{t('admin.descriptionAr')}</label>
             <textarea {...register('descriptionAr')} rows={2} className="w-full px-3 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Description (English)</label>
+            <label className="block text-sm font-medium mb-1">{t('admin.descriptionEn')}</label>
             <textarea {...register('descriptionEn')} rows={2} dir="ltr" className="w-full px-3 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
 
