@@ -32,8 +32,8 @@ export const serviceOfferSchema = z.object({
 }, { message: 'validation.maxPercentage', path: ['value'] });
 
 export const serviceSchema = z.object({
-  nameAr: z.string().min(2).max(200),
-  nameEn: z.string().min(2).max(200),
+  nameAr: z.string().min(2, 'validation.nameMin').max(200, 'validation.nameMax'),
+  nameEn: z.string().min(2, 'validation.nameMin').max(200, 'validation.nameMax'),
   descriptionAr: z.string().max(1000).default(''),
   descriptionEn: z.string().max(1000).default(''),
   categoryId: z.string().min(1, 'validation.required'),
