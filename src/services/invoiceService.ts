@@ -97,10 +97,28 @@ export async function issueInvoice(invoiceId: string): Promise<string> {
   const invoice = await getDocument<Invoice>(COLLECTION, invoiceId);
   if (!invoice || invoice.status !== 'draft') throw new Error('CANNOT_ISSUE_NON_DRAFT');
 
+  // Generate ZATCA QR code (must happen before status changes to 'issued'
+  // because security rules block updates to issued invoices)
+  const now = new Date();
+  const profile = await getDocument<BusinessProfile>('settings', 'businessProfile');
+  const qrCodeData = encodeTLV(
+    profile?.nameAr || '',
+    profile?.vatNumber || '',
+    now.toISOString(),
+    invoice.grandTotal.toFixed(2),
+    invoice.totalVat.toFixed(2)
+  );
+
   let invoiceNumber: string;
 
   try {
-    // Call Cloud Function for sequential numbering
+    // Save QR code while still in draft (before CF changes status)
+    await updateDocument(COLLECTION, invoiceId, {
+      qrCodeData,
+      updatedAt: Timestamp.now(),
+    });
+
+    // Call Cloud Function for sequential numbering (also sets status to 'issued')
     const functions = getFunctions();
     const generateNumber = httpsCallable<{ invoiceId: string }, { invoiceNumber: string }>(functions, 'generateInvoiceNumber');
     const result = await generateNumber({ invoiceId });
@@ -115,25 +133,10 @@ export async function issueInvoice(invoiceId: string): Promise<string> {
       invoiceNumber,
       status: 'issued',
       issuedAt: Timestamp.now(),
+      qrCodeData,
       updatedAt: Timestamp.now(),
     });
   }
-
-  // Generate ZATCA QR code
-  const now = new Date();
-  const profile = await getDocument<BusinessProfile>('settings', 'businessProfile');
-  const qrCodeData = encodeTLV(
-    profile?.nameAr || '',
-    profile?.vatNumber || '',
-    now.toISOString(),
-    invoice.grandTotal.toFixed(2),
-    invoice.totalVat.toFixed(2)
-  );
-
-  await updateDocument(COLLECTION, invoiceId, {
-    qrCodeData,
-    updatedAt: Timestamp.now(),
-  });
 
   // Create journal entry
   const updatedInvoice = await getDocument<Invoice>(COLLECTION, invoiceId);
