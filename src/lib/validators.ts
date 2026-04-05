@@ -102,6 +102,38 @@ export const manualJournalEntrySchema = z.object({
   return Math.abs(totalDebits - totalCredits) < 0.01;
 }, { message: 'validation.journalUnbalanced' });
 
+export const inviteAdminSchema = z.object({
+  fullName: z.string().min(2, 'validation.nameMin').max(100, 'validation.nameMax'),
+  email: z.string().email('validation.emailInvalid'),
+  phone: z.string().regex(/^\+?[0-9]{9,15}$/, 'validation.phoneInvalid'),
+});
+
+export const supplierSchema = z.object({
+  nameAr: z.string().min(2, 'validation.nameMin').max(200, 'validation.nameMax'),
+  nameEn: z.string().max(200).default(''),
+  phone: z.string().regex(/^\+?[0-9]{9,15}$/, 'validation.phoneInvalid'),
+  email: z.string().email('validation.emailInvalid').or(z.literal('')).default(''),
+  vatNumber: z.string().default(''),
+  address: z.string().max(500).default(''),
+});
+
+export const purchaseLineItemSchema = z.object({
+  description: z.string().min(1),
+  descriptionEn: z.string().default(''),
+  quantity: z.number().int().positive(),
+  unitPrice: z.number().nonnegative(),
+  vatRate: z.number().default(0.15),
+});
+
+export const purchaseInvoiceSchema = z.object({
+  supplierId: z.string().min(1, 'validation.required'),
+  externalInvoiceRef: z.string().max(100).default(''),
+  lineItems: z.array(purchaseLineItemSchema).min(1),
+  paymentMethod: z.enum(['cash', 'bank_transfer']),
+  expenseAccountCode: z.string().min(1, 'validation.required'),
+  notes: z.string().max(500).default(''),
+});
+
 // Type inference helpers
 export type UserRegistrationInput = z.infer<typeof userRegistrationSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -110,8 +142,12 @@ export type ServiceInput = z.output<typeof serviceSchema>;
 export type ServiceFormInput = z.input<typeof serviceSchema>;
 export type ReservationInput = z.infer<typeof reservationSchema>;
 export type InvoiceLineItemInput = z.infer<typeof invoiceLineItemSchema>;
-export type ExpenseInput = z.infer<typeof expenseSchema>;
-export type AssetInput = z.infer<typeof assetSchema>;
+export type ExpenseInput = z.output<typeof expenseSchema>;
+export type AssetInput = z.output<typeof assetSchema>;
 export type BusinessProfileInput = z.infer<typeof businessProfileSchema>;
 export type ScheduleConfigInput = z.infer<typeof scheduleConfigSchema>;
 export type ManualJournalEntryInput = z.infer<typeof manualJournalEntrySchema>;
+export type InviteAdminInput = z.infer<typeof inviteAdminSchema>;
+export type SupplierInput = z.infer<typeof supplierSchema>;
+export type PurchaseLineItemInput = z.infer<typeof purchaseLineItemSchema>;
+export type PurchaseInvoiceInput = z.infer<typeof purchaseInvoiceSchema>;

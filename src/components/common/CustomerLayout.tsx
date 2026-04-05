@@ -7,6 +7,7 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { getBusinessProfile } from '@/services/settingsService';
 import LanguageToggle from './LanguageToggle';
 import Footer from '@/components/customer/Footer';
+import logoImg from '@/images/logoediti.png';
 
 export default function CustomerLayout() {
   const { t } = useTranslation();
@@ -36,8 +37,9 @@ export default function CustomerLayout() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/" className="text-xl font-bold text-gold">
-            كار سيرف برو
+          <Link to="/" className="flex items-center gap-2 text-xl font-bold text-gold">
+            <img src={logoImg} alt="Smart Operation" className="h-9 w-9 object-contain" />
+            <span>Smart Operation</span>
           </Link>
 
           {/* Desktop Nav */}

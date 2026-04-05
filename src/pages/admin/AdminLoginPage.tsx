@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { loginSchema, type LoginInput } from '@/lib/validators';
 import { useAuthStore } from '@/stores/authStore';
+import logoImg from '@/images/logoediti.png';
 
 export default function AdminLoginPage() {
   const { t } = useTranslation();
@@ -29,8 +30,9 @@ export default function AdminLoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-primary">كار سيرف برو</h1>
+        <div className="text-center flex flex-col items-center">
+          <img src={logoImg} alt="Smart Operation" className="h-20 w-20 object-contain mb-3" />
+          <h1 className="text-2xl font-bold text-primary">Smart Operation</h1>
           <p className="mt-2 text-muted-foreground">{t('auth.adminLogin')}</p>
         </div>
 

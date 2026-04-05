@@ -15,6 +15,14 @@ service cloud.firestore {
       return isTenantMember(tenantId) && request.auth.token.role == 'admin';
     }
 
+    function isModerator(tenantId) {
+      return isTenantMember(tenantId) && request.auth.token.role == 'moderator';
+    }
+
+    function isStaff(tenantId) {
+      return isAdmin(tenantId) || isModerator(tenantId);
+    }
+
     function isCustomer(tenantId) {
       return isTenantMember(tenantId) && request.auth.token.role == 'customer';
     }
@@ -37,44 +45,44 @@ service cloud.firestore {
       // Services (public read for storefront catalog)
       match /services/{serviceId} {
         allow read: if true;
-        allow create, update, delete: if isAdmin(tenantId);
+        allow create, update, delete: if isStaff(tenantId);
       }
 
       // Categories (public read for storefront catalog)
       match /categories/{categoryId} {
         allow read: if true;
-        allow create, update, delete: if isAdmin(tenantId);
+        allow create, update, delete: if isStaff(tenantId);
       }
 
       // Reservations
       match /reservations/{reservationId} {
-        allow read: if isAdmin(tenantId) ||
+        allow read: if isStaff(tenantId) ||
           (isCustomer(tenantId) && resource.data.customerId == request.auth.uid);
         allow create: if isCustomer(tenantId) &&
           request.resource.data.customerId == request.auth.uid;
-        allow update, delete: if isAdmin(tenantId);
+        allow update, delete: if isStaff(tenantId);
       }
 
       // Invoices
       match /invoices/{invoiceId} {
-        allow read: if isAdmin(tenantId) ||
+        allow read: if isStaff(tenantId) ||
           (isCustomer(tenantId) && resource.data.buyerEmail == request.auth.token.email);
-        allow create: if isAdmin(tenantId);
-        allow update: if isAdmin(tenantId) && (
+        allow create: if isStaff(tenantId);
+        allow update: if isStaff(tenantId) && (
           resource.data.status != 'issued' ||
           (resource.data.status == 'issued' && request.resource.data.status == 'cancelled')
         );
-        allow delete: if isAdmin(tenantId) && resource.data.status == 'draft';
+        allow delete: if isStaff(tenantId) && resource.data.status == 'draft';
       }
 
       // Counters
       match /counters/{counterId} {
-        allow read, write: if isAdmin(tenantId);
+        allow read, write: if isStaff(tenantId);
       }
 
-      // Users
+      // Users — only admins can write (manage users)
       match /users/{userId} {
-        allow read: if isAdmin(tenantId) || request.auth.uid == userId;
+        allow read: if isStaff(tenantId) || request.auth.uid == userId;
         allow create: if isTenantMember(tenantId) && request.auth.uid == userId;
         allow update: if isAdmin(tenantId) || (
           request.auth.uid == userId &&
@@ -83,34 +91,56 @@ service cloud.firestore {
         allow delete: if isAdmin(tenantId);
       }
 
-      // Journal Entries (immutable after creation)
+      // Journal Entries
       match /journalEntries/{entryId} {
-        allow read: if isAdmin(tenantId);
-        allow create: if isAdmin(tenantId);
+        allow read: if isStaff(tenantId);
+        allow create, update, delete: if isStaff(tenantId);
       }
 
       // Expenses
       match /expenses/{expenseId} {
-        allow read, write: if isAdmin(tenantId);
+        allow read, write: if isStaff(tenantId);
       }
 
       // Accounts
       match /accounts/{accountId} {
-        allow read: if isAdmin(tenantId);
-        allow create, update: if isAdmin(tenantId);
-        allow delete: if isAdmin(tenantId) && resource.data.isSystem != true;
+        allow read: if isStaff(tenantId);
+        allow create, update: if isStaff(tenantId);
+        allow delete: if isStaff(tenantId) && resource.data.isSystem != true;
       }
 
       // Payments
       match /payments/{paymentId} {
-        allow read: if isAdmin(tenantId) ||
+        allow read: if isStaff(tenantId) ||
           (isCustomer(tenantId) && resource.data.customerId == request.auth.uid);
-        allow create, update: if isAdmin(tenantId);
+        allow create, update: if isStaff(tenantId);
       }
 
       // Assets
       match /assets/{assetId} {
-        allow read, write: if isAdmin(tenantId);
+        allow read, write: if isStaff(tenantId);
+      }
+
+      // Suppliers
+      match /suppliers/{supplierId} {
+        allow read, write: if isStaff(tenantId);
+      }
+
+      // Purchase Invoices
+      match /purchaseInvoices/{purchaseId} {
+        allow read: if isStaff(tenantId);
+        allow create: if isStaff(tenantId);
+        allow update: if isStaff(tenantId) && (
+          resource.data.status != 'issued' ||
+          (resource.data.status == 'issued' && request.resource.data.status == 'cancelled') ||
+          (resource.data.status == 'issued' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['paymentStatus', 'updatedAt']))
+        );
+        allow delete: if isStaff(tenantId) && resource.data.status == 'draft';
+      }
+
+      // Purchase Payments
+      match /purchasePayments/{paymentId} {
+        allow read, write: if isStaff(tenantId);
       }
 
       // Slot Bookings
