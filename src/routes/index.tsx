@@ -25,6 +25,8 @@ const InvoicesPage = lazy(() => import('@/pages/admin/InvoicesPage'));
 const InvoiceEditorPage = lazy(() => import('@/pages/admin/InvoiceEditorPage'));
 const SuppliersPage = lazy(() => import('@/pages/admin/SuppliersPage'));
 const PurchaseInvoicesPage = lazy(() => import('@/pages/admin/PurchaseInvoicesPage'));
+const SupplierStatementPage = lazy(() => import('@/components/admin/SupplierStatementView'));
+const SupplierPaymentsPage = lazy(() => import('@/pages/admin/SupplierPaymentsPage'));
 const PurchaseEditorPage = lazy(() => import('@/pages/admin/PurchaseEditorPage'));
 const AccountsPage = lazy(() => import('@/pages/admin/AccountsPage'));
 const JournalEntriesPage = lazy(() => import('@/pages/admin/JournalEntriesPage'));
@@ -94,6 +96,8 @@ export const router = createBrowserRouter([
       { path: 'invoices/new', element: <SuspenseWrapper><InvoiceEditorPage /></SuspenseWrapper> },
       { path: 'invoices/:id', element: <SuspenseWrapper><InvoiceEditorPage /></SuspenseWrapper> },
       { path: 'suppliers', element: <SuspenseWrapper><SuppliersPage /></SuspenseWrapper> },
+      { path: 'supplier-statement', element: <SuspenseWrapper><SupplierStatementPage /></SuspenseWrapper> },
+      { path: 'supplier-payments', element: <SuspenseWrapper><SupplierPaymentsPage /></SuspenseWrapper> },
       { path: 'purchases', element: <SuspenseWrapper><PurchaseInvoicesPage /></SuspenseWrapper> },
       { path: 'purchases/new', element: <SuspenseWrapper><PurchaseEditorPage /></SuspenseWrapper> },
       { path: 'purchases/:id', element: <SuspenseWrapper><PurchaseEditorPage /></SuspenseWrapper> },

@@ -6,7 +6,7 @@ import { getPurchaseInvoices, cancelPurchaseInvoice } from '@/services/purchaseS
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import type { PurchaseInvoice } from '@/types/purchase';
 import { cn } from '@/lib/utils';
-import { INVOICE_STATUS_COLORS, PAYMENT_STATUS_COLORS } from '@/lib/statusColors';
+import { INVOICE_STATUS_COLORS } from '@/lib/statusColors';
 
 export default function PurchaseInvoicesPage() {
   const { t } = useTranslation();
@@ -14,15 +14,13 @@ export default function PurchaseInvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [paymentFilter, setPaymentFilter] = useState<string>('all');
 
   const filteredInvoices = useMemo(() => {
     return invoices.filter((inv) => {
       if (statusFilter !== 'all' && inv.status !== statusFilter) return false;
-      if (paymentFilter !== 'all' && inv.paymentStatus !== paymentFilter) return false;
       return true;
     });
-  }, [invoices, statusFilter, paymentFilter]);
+  }, [invoices, statusFilter]);
 
   const loadData = async () => {
     try {
@@ -66,17 +64,6 @@ export default function PurchaseInvoicesPage() {
           <option value="issued">{t('invoice.issued')}</option>
           <option value="cancelled">{t('invoice.cancelled')}</option>
         </select>
-        <select
-          value={paymentFilter}
-          onChange={(e) => setPaymentFilter(e.target.value)}
-          className="px-3 py-2 text-sm border rounded-md bg-background"
-        >
-          <option value="all">{t('invoice.allPaymentStatuses')}</option>
-          <option value="unpaid">{t('invoice.unpaid')}</option>
-          <option value="paid">{t('invoice.paid')}</option>
-          <option value="partially_paid">{t('invoice.partiallyPaid')}</option>
-          <option value="refunded">{t('invoice.refunded')}</option>
-        </select>
       </div>
 
       <div className="border rounded-lg overflow-hidden">
@@ -88,7 +75,6 @@ export default function PurchaseInvoicesPage() {
               <th className="text-start px-4 py-3 text-sm font-medium">{t('purchase.supplierName')}</th>
               <th className="text-start px-4 py-3 text-sm font-medium">{t('purchase.externalRef')}</th>
               <th className="text-start px-4 py-3 text-sm font-medium">{t('invoice.grandTotal')}</th>
-              <th className="text-start px-4 py-3 text-sm font-medium">{t('invoice.paymentStatus')}</th>
               <th className="text-start px-4 py-3 text-sm font-medium">{t('common.status')}</th>
               <th className="text-start px-4 py-3 text-sm font-medium">{t('common.actions')}</th>
             </tr>
@@ -103,11 +89,6 @@ export default function PurchaseInvoicesPage() {
                 <td className="px-4 py-3 text-sm">{inv.supplierName}</td>
                 <td className="px-4 py-3 text-sm" dir="ltr">{inv.externalInvoiceRef || '-'}</td>
                 <td className="px-4 py-3 text-sm" dir="ltr">{inv.grandTotal.toFixed(2)} {t('common.sar')}</td>
-                <td className="px-4 py-3">
-                  <span className={cn('text-xs px-2 py-1 rounded', PAYMENT_STATUS_COLORS[inv.paymentStatus])}>
-                    {t(`invoice.${inv.paymentStatus}`)}
-                  </span>
-                </td>
                 <td className="px-4 py-3">
                   <span className={cn('text-xs px-2 py-1 rounded', INVOICE_STATUS_COLORS[inv.status])}>
                     {t(`invoice.${inv.status}`)}
@@ -128,7 +109,7 @@ export default function PurchaseInvoicesPage() {
               </tr>
             ))}
             {filteredInvoices.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">{t('common.noData')}</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">{t('common.noData')}</td></tr>
             )}
           </tbody>
         </table>

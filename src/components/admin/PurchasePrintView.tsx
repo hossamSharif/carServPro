@@ -63,7 +63,7 @@ export default function PurchasePrintView({ purchase, onEdit }: PurchasePrintVie
             {isCancelled ? 'فاتورة مشتريات ملغاة' : t('purchase.purchaseInvoice')}
           </h1>
           <p className="text-sm text-gray-500">Purchase Invoice</p>
-          <p className="text-base font-semibold mt-1 text-blue-700" dir="ltr">
+          <p className="text-base font-semibold mt-1 text-black" dir="ltr">
             {purchase.serialNumber != null ? purchase.serialNumber : (purchase.invoiceNumber || t('invoice.draft'))}
           </p>
           {purchase.amendedFromPurchaseId && (
@@ -104,16 +104,13 @@ export default function PurchasePrintView({ purchase, onEdit }: PurchasePrintVie
               {t('purchase.externalRef')}
             </h3>
             <p className="text-sm font-medium text-gray-900" dir="ltr">{purchase.externalInvoiceRef || '-'}</p>
-            <p className="text-xs text-gray-600 mt-2">
-              {t('invoice.paymentMethod')}: {t(`invoice.${purchase.paymentMethod === 'bank_transfer' ? 'bankTransfer' : purchase.paymentMethod}`)}
-            </p>
           </div>
         </div>
 
         {/* Line Items Table */}
         <table className="w-full mb-6 text-sm border-collapse border border-gray-200">
           <thead>
-            <tr style={{ backgroundColor: '#1e40af', color: 'white' }}>
+            <tr style={{ backgroundColor: '#000000', color: 'white' }}>
               <th className="text-center px-3 py-2.5 border border-gray-300 w-10 font-medium">#</th>
               <th className="text-start px-3 py-2.5 border border-gray-300 font-medium">{t('invoice.description')}</th>
               <th className="text-center px-3 py-2.5 border border-gray-300 w-16 font-medium">{t('customer.quantity')}</th>
@@ -149,7 +146,7 @@ export default function PurchasePrintView({ purchase, onEdit }: PurchasePrintVie
             </div>
             <div
               className="flex justify-between py-2.5 px-3 font-bold text-base rounded mt-1"
-              style={{ backgroundColor: '#1e40af', color: 'white' }}
+              style={{ backgroundColor: '#000000', color: 'white' }}
             >
               <span>{t('invoice.grandTotal')}</span>
               <span dir="ltr">{purchase.grandTotal.toFixed(2)} {t('common.sar')}</span>

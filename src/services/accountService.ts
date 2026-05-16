@@ -7,6 +7,9 @@ import {
   where,
   orderBy,
   Timestamp,
+  runTransaction,
+  db,
+  getDocRef,
 } from './firestore';
 import type { Account, AccountType } from '@/types';
 
@@ -49,8 +52,11 @@ export async function updateAccount(id: string, data: Partial<{ nameAr: string; 
 
 export async function ensureSystemAccounts(): Promise<void> {
   const systemAccounts = [
+    { code: '1001', nameAr: 'النقدية', nameEn: 'Cash', type: 'asset' as const },
+    { code: '1002', nameAr: 'البنك', nameEn: 'Bank', type: 'asset' as const },
     { code: '1300', nameAr: 'ضريبة القيمة المضافة المدفوعة', nameEn: 'Input VAT (VAT Receivable)', type: 'asset' as const },
     { code: '2100', nameAr: 'ذمم دائنة (موردين)', nameEn: 'Accounts Payable', type: 'liability' as const },
+    { code: '5100', nameAr: 'مشتريات', nameEn: 'Purchases', type: 'expense' as const },
   ];
 
   for (const account of systemAccounts) {
@@ -63,6 +69,75 @@ export async function ensureSystemAccounts(): Promise<void> {
         createdAt: Timestamp.now(),
       });
     }
+  }
+}
+
+export async function getAccountBySupplierId(supplierId: string): Promise<Account | undefined> {
+  const results = await queryDocuments<Account>(COLLECTION, [where('supplierId', '==', supplierId)]);
+  return results[0];
+}
+
+export async function createSupplierApAccount(
+  supplierId: string,
+  supplierNameAr: string,
+  supplierNameEn: string
+): Promise<{ id: string; code: string }> {
+  // Get next AP sub-account code via transaction
+  const counterRef = getDocRef('counters', 'apSubAccountCounter');
+
+  const code = await runTransaction(db, async (transaction) => {
+    const counterSnap = await transaction.get(counterRef);
+    let lastNumber = 2100; // Start from 2100, first sub-account will be 2101
+
+    if (counterSnap.exists()) {
+      lastNumber = counterSnap.data().lastNumber;
+    } else {
+      // Initialize: check for existing 21xx accounts to avoid collisions
+      const existingAccounts = await queryDocuments<Account>(COLLECTION, [
+        where('type', '==', 'liability'),
+        orderBy('code', 'desc'),
+      ]);
+      const max21xx = existingAccounts
+        .filter((a) => a.code.startsWith('21') && /^\d+$/.test(a.code))
+        .map((a) => parseInt(a.code))
+        .filter((n) => n > 2100);
+      if (max21xx.length > 0) {
+        lastNumber = Math.max(...max21xx);
+      }
+    }
+
+    const newNumber = lastNumber + 1;
+    const newCode = String(newNumber);
+
+    transaction.set(counterRef, { lastNumber: newNumber, updatedAt: Timestamp.now() });
+    return newCode;
+  });
+
+  const id = await addDocument(COLLECTION, {
+    code,
+    nameAr: `ذمم دائنة - ${supplierNameAr}`,
+    nameEn: supplierNameEn ? `AP - ${supplierNameEn}` : `AP - ${supplierNameAr}`,
+    type: 'liability' as AccountType,
+    isSystem: true,
+    active: true,
+    supplierId,
+    createdAt: Timestamp.now(),
+  });
+
+  return { id, code };
+}
+
+export async function updateSupplierApAccountName(
+  supplierId: string,
+  supplierNameAr: string,
+  supplierNameEn: string
+): Promise<void> {
+  const account = await getAccountBySupplierId(supplierId);
+  if (account) {
+    await updateDocument(COLLECTION, account.id, {
+      nameAr: `ذمم دائنة - ${supplierNameAr}`,
+      nameEn: supplierNameEn ? `AP - ${supplierNameEn}` : `AP - ${supplierNameAr}`,
+    });
   }
 }
 

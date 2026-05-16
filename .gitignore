@@ -16,3 +16,11 @@ functions/lib/
 *.tsbuildinfo
 emulator-data/
 .firebase/
+
+# Test artifacts and local scratch files
+.playwright-mcp/
+nul
+/payments-page-*.png
+/scripts/firebase-rest-helper.cjs
+/scripts/inspect-supplier-payments.ts
+/tmp-users.json

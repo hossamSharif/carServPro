@@ -9,6 +9,7 @@ export interface Supplier {
   email: string;
   vatNumber: string;
   address: string;
+  apAccountCode?: string;
   active: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -31,9 +32,7 @@ export interface PurchaseInvoice {
   grandTotal: number;
   invoiceDateGregorian: string;
   invoiceDateHijri: string;
-  paymentMethod: 'cash' | 'bank_transfer';
-  paymentStatus: PurchasePaymentStatus;
-  expenseAccountCode: string;           // Default expense account (e.g. 5xxx)
+  supplierAccountCode: string;          // Supplier's AP sub-account code (e.g. 2101)
   attachments: PurchaseAttachment[];
   notes: string;
   createdAt: Timestamp;
@@ -44,7 +43,6 @@ export interface PurchaseInvoice {
 }
 
 export type PurchaseInvoiceStatus = 'draft' | 'issued' | 'cancelled';
-export type PurchasePaymentStatus = 'unpaid' | 'paid' | 'partially_paid' | 'refunded';
 
 export interface PurchaseLineItem {
   description: string;
@@ -62,18 +60,24 @@ export interface PurchaseAttachment {
   path: string;             // Firebase Storage path
 }
 
-// Purchase Payment
-export interface PurchasePayment {
+// Supplier Payment (standalone — not tied to a specific purchase invoice)
+export interface SupplierPayment {
   id: string;
-  purchaseInvoiceId: string;
   supplierId: string;
+  supplierName: string;
+  supplierAccountCode: string;
+  type: SupplierPaymentType;
   amount: number;
   method: 'cash' | 'bank_transfer';
-  journalEntryId: string;
+  date: Timestamp;
   notes: string;
-  recordedBy: string;
+  journalEntryId: string;
+  createdBy: string;
   createdAt: Timestamp;
+  updatedAt?: Timestamp;
 }
+
+export type SupplierPaymentType = 'payment' | 'receipt';
 
 // Purchase Invoice Counter
 export interface PurchaseInvoiceCounter {

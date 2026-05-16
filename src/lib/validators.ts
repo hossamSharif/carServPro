@@ -129,8 +129,15 @@ export const purchaseInvoiceSchema = z.object({
   supplierId: z.string().min(1, 'validation.required'),
   externalInvoiceRef: z.string().max(100).default(''),
   lineItems: z.array(purchaseLineItemSchema).min(1),
-  paymentMethod: z.enum(['cash', 'bank_transfer']),
-  expenseAccountCode: z.string().min(1, 'validation.required'),
+  notes: z.string().max(500).default(''),
+});
+
+export const supplierPaymentSchema = z.object({
+  supplierId: z.string().min(1, 'validation.required'),
+  type: z.enum(['payment', 'receipt']),
+  amount: z.number().positive('validation.positiveNumber'),
+  method: z.enum(['cash', 'bank_transfer']),
+  date: z.coerce.date(),
   notes: z.string().max(500).default(''),
 });
 
@@ -151,3 +158,4 @@ export type InviteAdminInput = z.infer<typeof inviteAdminSchema>;
 export type SupplierInput = z.infer<typeof supplierSchema>;
 export type PurchaseLineItemInput = z.infer<typeof purchaseLineItemSchema>;
 export type PurchaseInvoiceInput = z.infer<typeof purchaseInvoiceSchema>;
+export type SupplierPaymentInput = z.infer<typeof supplierPaymentSchema>;

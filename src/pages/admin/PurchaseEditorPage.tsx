@@ -7,13 +7,10 @@ import {
   cloneIssuedPurchaseToDraft, deleteDraftPurchase,
   uploadPurchaseAttachment, removePurchaseAttachment,
 } from '@/services/purchaseService';
-import { getPurchasePaymentsByInvoice, recordPurchasePayment } from '@/services/purchasePaymentService';
 import { getSuppliers } from '@/services/supplierService';
-import { getAccountsByType } from '@/services/accountService';
 import PurchasePrintView from '@/components/admin/PurchasePrintView';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
-import type { PurchaseInvoice, PurchaseLineItem, PurchaseAttachment, Supplier, PurchasePayment } from '@/types/purchase';
-import type { Account } from '@/types';
+import type { PurchaseInvoice, PurchaseLineItem, PurchaseAttachment, Supplier } from '@/types/purchase';
 
 export default function PurchaseEditorPage() {
   const { t } = useTranslation();
@@ -28,12 +25,6 @@ export default function PurchaseEditorPage() {
   const [editProcessing, setEditProcessing] = useState(false);
   const [error, setError] = useState('');
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [expenseAccounts, setExpenseAccounts] = useState<Account[]>([]);
-  const [payments, setPayments] = useState<PurchasePayment[]>([]);
-  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bank_transfer'>('cash');
-  const [paymentNotes, setPaymentNotes] = useState('');
 
   // Select supplier state
   const [selectedSupplierId, setSelectedSupplierId] = useState('');
@@ -51,15 +42,8 @@ export default function PurchaseEditorPage() {
     }
   };
 
-  const loadPayments = async () => {
-    if (!id) return;
-    const data = await getPurchasePaymentsByInvoice(id);
-    setPayments(data);
-  };
-
   useEffect(() => {
     getSuppliers().then(setSuppliers);
-    getAccountsByType('expense').then(setExpenseAccounts);
   }, []);
 
   useEffect(() => {
@@ -68,7 +52,6 @@ export default function PurchaseEditorPage() {
       setLoading(false);
     } else {
       loadPurchase();
-      loadPayments();
     }
   }, [id]);
 
@@ -84,6 +67,7 @@ export default function PurchaseEditorPage() {
         supplierName: supplier.nameAr,
         supplierVatNumber: supplier.vatNumber,
         supplierPhone: supplier.phone,
+        supplierAccountCode: supplier.apAccountCode || '',
       });
       navigate(`/admin/purchases/${newId}`, { replace: true });
     } catch (err) {
@@ -160,8 +144,7 @@ export default function PurchaseEditorPage() {
         supplierPhone: purchase.supplierPhone,
         externalInvoiceRef: purchase.externalInvoiceRef,
         lineItems: recalcItems,
-        paymentMethod: purchase.paymentMethod,
-        expenseAccountCode: purchase.expenseAccountCode,
+        supplierAccountCode: purchase.supplierAccountCode,
         notes: purchase.notes,
         attachments: purchase.attachments,
       });
@@ -191,8 +174,7 @@ export default function PurchaseEditorPage() {
         supplierPhone: purchase.supplierPhone,
         externalInvoiceRef: purchase.externalInvoiceRef,
         lineItems: recalcItems,
-        paymentMethod: purchase.paymentMethod,
-        expenseAccountCode: purchase.expenseAccountCode,
+        supplierAccountCode: purchase.supplierAccountCode,
         notes: purchase.notes,
         attachments: purchase.attachments,
       });
@@ -243,34 +225,6 @@ export default function PurchaseEditorPage() {
     await updateDraftPurchase(id, { attachments: updatedAttachments });
   };
 
-  const handleRecordPayment = async () => {
-    if (!id || !purchase) return;
-    const amount = parseFloat(paymentAmount);
-    if (!amount || amount <= 0) return;
-    setSaving(true);
-    setError('');
-    try {
-      await recordPurchasePayment({
-        purchaseInvoiceId: id,
-        supplierId: purchase.supplierId,
-        amount,
-        method: paymentMethod,
-        notes: paymentNotes,
-        invoiceNumber: purchase.invoiceNumber,
-        supplierName: purchase.supplierName,
-      });
-      setPaymentDialogOpen(false);
-      setPaymentAmount('');
-      setPaymentNotes('');
-      await loadPurchase();
-      await loadPayments();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleSupplierChange = (supplierId: string) => {
     const supplier = suppliers.find((s) => s.id === supplierId);
     if (!purchase || !supplier) return;
@@ -280,6 +234,7 @@ export default function PurchaseEditorPage() {
       supplierName: supplier.nameAr,
       supplierVatNumber: supplier.vatNumber,
       supplierPhone: supplier.phone,
+      supplierAccountCode: supplier.apAccountCode || '',
     });
   };
 
@@ -327,8 +282,6 @@ export default function PurchaseEditorPage() {
 
   // ── Issued/cancelled: show print view ──
   if (purchase.status !== 'draft') {
-    const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
-    const remaining = purchase.grandTotal - totalPaid;
     return (
       <div className="max-w-4xl">
         <button
@@ -342,55 +295,6 @@ export default function PurchaseEditorPage() {
           onEdit={purchase.status === 'issued' ? () => setEditDialogOpen(true) : undefined}
         />
 
-        {/* Payments section for issued invoices */}
-        {purchase.status === 'issued' && (
-          <div className="mt-6 border rounded-lg p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">{t('purchase.payments')}</h3>
-              {remaining > 0.01 && (
-                <button
-                  onClick={() => { setPaymentAmount(remaining.toFixed(2)); setPaymentDialogOpen(true); }}
-                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-                >
-                  <Plus className="h-4 w-4" /> {t('purchase.recordPayment')}
-                </button>
-              )}
-            </div>
-            {payments.length > 0 ? (
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-start px-3 py-2">{t('common.date')}</th>
-                    <th className="text-start px-3 py-2">{t('common.amount')}</th>
-                    <th className="text-start px-3 py-2">{t('purchase.paymentMethod')}</th>
-                    <th className="text-start px-3 py-2">{t('invoice.notes')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map((p) => (
-                    <tr key={p.id} className="border-t">
-                      <td className="px-3 py-2" dir="ltr">
-                        {p.createdAt && typeof p.createdAt === 'object' && 'toDate' in p.createdAt
-                          ? (p.createdAt as { toDate: () => Date }).toDate().toLocaleDateString()
-                          : '-'}
-                      </td>
-                      <td className="px-3 py-2 font-mono" dir="ltr">{p.amount.toFixed(2)} {t('common.sar')}</td>
-                      <td className="px-3 py-2">{t(`invoice.${p.method === 'bank_transfer' ? 'bankTransfer' : p.method}`)}</td>
-                      <td className="px-3 py-2">{p.notes || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="text-sm text-muted-foreground">{t('purchase.noPayments')}</p>
-            )}
-            <div className="mt-3 flex gap-6 text-sm border-t pt-3">
-              <span>{t('purchase.totalPaid')}: <strong dir="ltr">{totalPaid.toFixed(2)} {t('common.sar')}</strong></span>
-              <span>{t('purchase.remainingBalance')}: <strong dir="ltr">{remaining.toFixed(2)} {t('common.sar')}</strong></span>
-            </div>
-          </div>
-        )}
-
         {error && <div className="mt-4 p-3 bg-destructive/10 text-destructive text-sm rounded-md">{error}</div>}
 
         <ConfirmDialog
@@ -401,41 +305,6 @@ export default function PurchaseEditorPage() {
           onConfirm={handleEditIssued}
           loading={editProcessing}
         />
-
-        {/* Payment Dialog */}
-        {paymentDialogOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="fixed inset-0 bg-black/50" onClick={() => !saving && setPaymentDialogOpen(false)} />
-            <div className="relative bg-background rounded-lg border shadow-lg p-6 w-full max-w-sm mx-4">
-              <h2 className="text-lg font-semibold mb-4">{t('purchase.recordPayment')}</h2>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1">{t('purchase.paymentAmount')} *</label>
-                  <input type="number" step="0.01" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} className="w-full px-3 py-2 border rounded-md bg-background text-sm" dir="ltr" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">{t('purchase.paymentMethod')}</label>
-                  <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as 'cash' | 'bank_transfer')} className="w-full px-3 py-2 border rounded-md bg-background text-sm">
-                    <option value="cash">{t('invoice.cash')}</option>
-                    <option value="bank_transfer">{t('invoice.bankTransfer')}</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">{t('purchase.paymentNotes')}</label>
-                  <input value={paymentNotes} onChange={(e) => setPaymentNotes(e.target.value)} className="w-full px-3 py-2 border rounded-md bg-background text-sm" />
-                </div>
-              </div>
-              <div className="mt-6 flex justify-end gap-3">
-                <button onClick={() => setPaymentDialogOpen(false)} disabled={saving} className="px-4 py-2 text-sm rounded-md border hover:bg-accent disabled:opacity-50">
-                  {t('common.cancel')}
-                </button>
-                <button onClick={handleRecordPayment} disabled={saving || !paymentAmount} className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-                  {saving ? t('common.loading') : t('common.confirm')}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -492,18 +361,13 @@ export default function PurchaseEditorPage() {
             <label className="block text-sm font-medium mb-1">{t('purchase.externalRef')}</label>
             <input value={purchase.externalInvoiceRef} onChange={(e) => setPurchase({ ...purchase, externalInvoiceRef: e.target.value })} className="w-full px-3 py-2 border rounded-md bg-background text-sm" dir="ltr" />
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">{t('purchase.expenseAccount')}</label>
-            <select
-              value={purchase.expenseAccountCode}
-              onChange={(e) => setPurchase({ ...purchase, expenseAccountCode: e.target.value })}
-              className="w-full px-3 py-2 border rounded-md bg-background text-sm"
-            >
-              {expenseAccounts.map((a) => (
-                <option key={a.id} value={a.code}>{a.code} - {a.nameAr}</option>
-              ))}
-            </select>
-          </div>
+          {purchase.supplierAccountCode && (
+            <div className="mt-2 px-3 py-2 rounded-md bg-muted/50 text-sm">
+              <span className="font-medium">{t('purchase.supplierAccount')}: </span>
+              <span className="font-mono" dir="ltr">{purchase.supplierAccountCode}</span>
+              <span> - {t('purchase.supplierAccountInfo')}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -590,23 +454,10 @@ export default function PurchaseEditorPage() {
         </label>
       </div>
 
-      {/* Payment Method & Notes */}
-      <div className="grid grid-cols-2 gap-6 mb-6">
-        <div>
-          <label className="block text-sm font-medium mb-1">{t('invoice.paymentMethod')}</label>
-          <select
-            value={purchase.paymentMethod}
-            onChange={(e) => setPurchase({ ...purchase, paymentMethod: e.target.value as 'cash' | 'bank_transfer' })}
-            className="w-full px-3 py-2 border rounded-md bg-background text-sm"
-          >
-            <option value="cash">{t('invoice.cash')}</option>
-            <option value="bank_transfer">{t('invoice.bankTransfer')}</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t('invoice.notes')}</label>
-          <textarea value={purchase.notes} onChange={(e) => setPurchase({ ...purchase, notes: e.target.value })} rows={2} className="w-full px-3 py-2 border rounded-md bg-background text-sm" />
-        </div>
+      {/* Notes */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium mb-1">{t('invoice.notes')}</label>
+        <textarea value={purchase.notes} onChange={(e) => setPurchase({ ...purchase, notes: e.target.value })} rows={2} className="w-full px-3 py-2 border rounded-md bg-background text-sm" />
       </div>
 
       {/* Dates */}

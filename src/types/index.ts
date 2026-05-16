@@ -164,6 +164,7 @@ export interface Account {
   type: AccountType;
   isSystem: boolean;
   active: boolean;
+  supplierId?: string;
   createdAt: Timestamp;
 }
 
@@ -175,7 +176,7 @@ export interface JournalEntry {
   date: Timestamp;
   description: string;
   lines: JournalLine[];
-  sourceType: 'invoice' | 'invoice_cancellation' | 'expense' | 'asset' | 'manual' | 'purchase' | 'purchase_cancellation' | 'purchase_payment';
+  sourceType: 'invoice' | 'invoice_cancellation' | 'expense' | 'asset' | 'manual' | 'purchase' | 'purchase_cancellation' | 'supplier_payment' | 'supplier_payment_reversal';
   sourceId: string | null;
   createdBy: string;
   createdAt: Timestamp;

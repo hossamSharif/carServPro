@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
-import { getSuppliers, createSupplier, updateSupplier, deleteSupplier } from '@/services/supplierService';
+import { Plus, Pencil, Trash2, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { getSuppliers, createSupplier, updateSupplier, deleteSupplier, ensureSupplierApAccounts, SupplierInUseError } from '@/services/supplierService';
+import { getJournalEntries } from '@/services/journalService';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import type { Supplier } from '@/types/purchase';
 
@@ -18,7 +20,9 @@ const emptyForm: SupplierFormData = { nameAr: '', nameEn: '', phone: '', email: 
 
 export default function SuppliersPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [balances, setBalances] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -26,10 +30,30 @@ export default function SuppliersPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState<SupplierFormData>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
-      setSuppliers(await getSuppliers());
+      await ensureSupplierApAccounts();
+      const suppliersData = await getSuppliers();
+      setSuppliers(suppliersData);
+
+      // Compute per-supplier balance from journal entries
+      const entries = await getJournalEntries();
+      const apCodeToSupplierId: Record<string, string> = {};
+      for (const s of suppliersData) {
+        if (s.apAccountCode) apCodeToSupplierId[s.apAccountCode] = s.id;
+      }
+      const bal: Record<string, number> = {};
+      for (const entry of entries) {
+        for (const line of entry.lines) {
+          const sid = apCodeToSupplierId[line.accountCode];
+          if (sid) {
+            bal[sid] = (bal[sid] || 0) + line.credit - line.debit;
+          }
+        }
+      }
+      setBalances(bal);
     } finally {
       setLoading(false);
     }
@@ -74,10 +98,25 @@ export default function SuppliersPage() {
 
   const handleDelete = async () => {
     if (!deletingId) return;
-    await deleteSupplier(deletingId);
-    setDeletingId(null);
-    setDeleteDialogOpen(false);
-    loadData();
+    try {
+      await deleteSupplier(deletingId);
+      setDeletingId(null);
+      setDeleteDialogOpen(false);
+      loadData();
+    } catch (err) {
+      if (err instanceof SupplierInUseError) {
+        const parts = err.reasons.map((r) => t(`purchase.deleteSupplierBlocked.${r}`, {
+          invoices: err.details.purchaseInvoices,
+          payments: err.details.supplierPayments,
+          legacy: err.details.legacyPurchasePayments,
+          balance: err.details.apBalance.toFixed(2),
+        }));
+        setDeleteError(`${t('purchase.deleteSupplierBlocked.title')}\n${parts.join('\n')}`);
+        setDeleteDialogOpen(false);
+      } else {
+        throw err;
+      }
+    }
   };
 
   if (loading) return <div className="p-6">{t('common.loading')}</div>;
@@ -101,6 +140,8 @@ export default function SuppliersPage() {
               <th className="text-start px-4 py-3 text-sm font-medium">{t('purchase.supplierName')}</th>
               <th className="text-start px-4 py-3 text-sm font-medium">{t('purchase.supplierPhone')}</th>
               <th className="text-start px-4 py-3 text-sm font-medium">{t('purchase.supplierVat')}</th>
+              <th className="text-start px-4 py-3 text-sm font-medium">{t('purchase.supplierAccount')}</th>
+              <th className="text-start px-4 py-3 text-sm font-medium">{t('purchase.supplierBalance')}</th>
               <th className="text-start px-4 py-3 text-sm font-medium">{t('purchase.supplierAddress')}</th>
               <th className="text-start px-4 py-3 text-sm font-medium">{t('common.actions')}</th>
             </tr>
@@ -114,9 +155,22 @@ export default function SuppliersPage() {
                 </td>
                 <td className="px-4 py-3 text-sm" dir="ltr">{s.phone}</td>
                 <td className="px-4 py-3 text-sm font-mono" dir="ltr">{s.vatNumber || '-'}</td>
+                <td className="px-4 py-3 text-sm font-mono" dir="ltr">{s.apAccountCode || '-'}</td>
+                <td className="px-4 py-3 text-sm font-mono" dir="ltr">
+                  <span className={balances[s.id] > 0.01 ? 'text-destructive font-medium' : balances[s.id] < -0.01 ? 'text-blue-600 font-medium' : 'text-green-600'}>
+                    {(balances[s.id] || 0).toFixed(2)}
+                  </span>
+                </td>
                 <td className="px-4 py-3 text-sm">{s.address || '-'}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => navigate(`/admin/supplier-statement?supplierId=${s.id}`)}
+                      className="p-1 hover:bg-accent rounded text-primary"
+                      title={t('purchase.viewStatement')}
+                    >
+                      <FileText className="h-4 w-4" />
+                    </button>
                     <button onClick={() => openEdit(s)} className="p-1 hover:bg-accent rounded" title={t('purchase.editSupplier')}>
                       <Pencil className="h-4 w-4" />
                     </button>
@@ -132,7 +186,7 @@ export default function SuppliersPage() {
               </tr>
             ))}
             {suppliers.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">{t('common.noData')}</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">{t('common.noData')}</td></tr>
             )}
           </tbody>
         </table>
@@ -192,6 +246,24 @@ export default function SuppliersPage() {
         destructive
         onConfirm={handleDelete}
       />
+
+      {deleteError && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" onClick={() => { setDeleteError(null); setDeletingId(null); }} />
+          <div className="relative bg-background rounded-lg border shadow-lg p-6 w-full max-w-md mx-4">
+            <h2 className="text-lg font-semibold mb-3 text-destructive">{t('purchase.deleteSupplierBlocked.title')}</h2>
+            <p className="text-sm whitespace-pre-line mb-4">{deleteError}</p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => { setDeleteError(null); setDeletingId(null); }}
+                className="px-4 py-2 text-sm rounded-md border hover:bg-accent"
+              >
+                {t('common.close')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

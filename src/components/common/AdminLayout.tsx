@@ -4,7 +4,7 @@ import {
   LayoutDashboard, CalendarDays, Wrench, Tags, FileText,
   Calculator, Users, Settings, LogOut, ChevronRight, ChevronLeft,
   Receipt, BookOpen, DollarSign, Package, BarChart3,
-  ShoppingCart, Building2, FileInput,
+  ShoppingCart, Building2, FileInput, Wallet,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUIStore } from '@/stores/uiStore';
@@ -21,6 +21,7 @@ const navItems = [
   { type: 'group', labelKey: 'nav.purchases', icon: ShoppingCart, children: [
     { path: '/admin/suppliers', icon: Building2, labelKey: 'nav.suppliers' },
     { path: '/admin/purchases', icon: FileInput, labelKey: 'nav.purchaseInvoices' },
+    { path: '/admin/supplier-payments', icon: Wallet, labelKey: 'nav.supplierPayments' },
   ]},
   { type: 'group', labelKey: 'nav.accounting', icon: Calculator, children: [
     { path: '/admin/accounting', icon: BookOpen, labelKey: 'nav.chartOfAccounts' },

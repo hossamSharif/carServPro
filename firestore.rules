@@ -106,7 +106,10 @@ service cloud.firestore {
       match /accounts/{accountId} {
         allow read: if isStaff(tenantId);
         allow create, update: if isStaff(tenantId);
-        allow delete: if isStaff(tenantId) && resource.data.isSystem != true;
+        // Admins can delete any account (e.g. supplier AP accounts during reset).
+        // Non-admin staff can only delete non-system accounts.
+        allow delete: if isAdmin(tenantId) ||
+          (isStaff(tenantId) && resource.data.isSystem != true);
       }
 
       // Payments
@@ -132,14 +135,21 @@ service cloud.firestore {
         allow create: if isStaff(tenantId);
         allow update: if isStaff(tenantId) && (
           resource.data.status != 'issued' ||
-          (resource.data.status == 'issued' && request.resource.data.status == 'cancelled') ||
-          (resource.data.status == 'issued' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['paymentStatus', 'updatedAt']))
+          (resource.data.status == 'issued' && request.resource.data.status == 'cancelled')
         );
-        allow delete: if isStaff(tenantId) && resource.data.status == 'draft';
+        // Admins can delete any purchase invoice (e.g. during data reset).
+        // Non-admin staff may only delete drafts.
+        allow delete: if isAdmin(tenantId) ||
+          (isStaff(tenantId) && resource.data.status == 'draft');
       }
 
-      // Purchase Payments
+      // Purchase Payments (legacy — kept read/write for migration cleanup)
       match /purchasePayments/{paymentId} {
+        allow read, write: if isStaff(tenantId);
+      }
+
+      // Supplier Payments (standalone supplier pay/receive)
+      match /supplierPayments/{paymentId} {
         allow read, write: if isStaff(tenantId);
       }
 
